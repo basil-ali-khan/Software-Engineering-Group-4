@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Button, Modal, Form } from 'react-bootstrap';
 import { FaEdit, FaTrash, FaPlus, FaBoxOpen, FaShoppingCart } from 'react-icons/fa';
+import { supabase } from './supabaseClient'; // Import Supabase client
 import '../styles/AdminDashboard.css';
 
 const AdminDashboard = () => {
+  const [products, setProducts] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -11,64 +13,96 @@ const AdminDashboard = () => {
     name: '',
     category: '',
     price: '',
-    stock: '',
+    stockQuantity: '',
     description: '',
     image: ''
   });
 
-  // Sample products data (replace with actual data from your context/backend)
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: 'Fresh Milk',
-      category: 'Dairy',
-      price: 2.99,
-      stock: 10,
-      description: '1 Liter',
-      image: 'https://via.placeholder.com/150'
-    },
-    // Add more products...
-  ]);
-
-  const handleAddProduct = (e) => {
-    e.preventDefault();
-    const newProduct = {
-      id: Date.now(), // temporary ID generation
-      ...formData
+  // Fetch products from the database
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const { data, error } = await supabase.from('product').select('*');
+      if (error) {
+        console.error('Error fetching products:', error);
+      } else {
+        setProducts(data);
+      }
     };
-    setProducts([...products, newProduct]);
-    setShowAddModal(false);
-    setFormData({
-      name: '',
-      category: '',
-      price: '',
-      stock: '',
-      description: '',
-      image: ''
-    });
-  };
+    fetchProducts();
+  }, []);
 
-  const handleEditProduct = (e) => {
+  // Add a new product
+  const handleAddProduct = async (e) => {
     e.preventDefault();
-    const updatedProducts = products.map(product =>
-      product.id === selectedProduct.id ? { ...product, ...formData } : product
-    );
-    setProducts(updatedProducts);
-    setShowEditModal(false);
-  };
-
-  const handleDeleteProduct = (productId) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      setProducts(products.filter(product => product.id !== productId));
+    const { data, error } = await supabase.from('product').insert([formData]);
+    if (error) {
+      console.error('Error adding product:', error);
+      alert('Failed to add product.');
+    } else {
+      setProducts([...products, ...data]);
+      setShowAddModal(false);
+      setFormData({
+        name: '',
+        category: '',
+        price: '',
+        stockQuantity: '',
+        description: '',
+        image: ''
+      });
+      alert('Product added successfully!');
     }
   };
 
-  const handleReorder = (productId) => {
-    const updatedProducts = products.map(product =>
-      product.id === productId ? { ...product, stock: product.stock + 10 } : product
-    );
-    setProducts(updatedProducts);
-    alert('Reorder placed successfully!');
+  // Edit an existing product
+  const handleEditProduct = async (e) => {
+    e.preventDefault();
+    const { data, error } = await supabase
+      .from('product')
+      .update(formData)
+      .eq('productID', selectedProduct.productID);
+    if (error) {
+      console.error('Error updating product:', error);
+      alert('Failed to update product.');
+    } else {
+      setProducts(products.map((product) =>
+        product.productID === selectedProduct.productID ? { ...product, ...formData } : product
+      ));
+      setShowEditModal(false);
+      alert('Product updated successfully!');
+    }
+  };
+
+  // Delete a product
+  const handleDeleteProduct = async (productID) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      const { error } = await supabase.from('product').delete().eq('productID', productID);
+      if (error) {
+        console.error('Error deleting product:', error);
+        alert('Failed to delete product.');
+      } else {
+        setProducts(products.filter((product) => product.productID !== productID));
+        alert('Product deleted successfully!');
+      }
+    }
+  };
+
+  // Reorder stock for a product
+  const handleReorder = async (productID) => {
+    const product = products.find((p) => p.productID === productID);
+    const updatedStock = product.stockQuantity + 10;
+    const { error } = await supabase
+      .from('product')
+      .update({ stockQuantity: updatedStock })
+      .eq('productID', productID);
+    if (error) {
+      console.error('Error reordering stock:', error);
+      alert('Failed to reorder stock.');
+    } else {
+      setProducts(products.map((p) =>
+        p.productID === productID ? { ...p, stockQuantity: updatedStock } : p
+      ));
+      alert('Reorder placed successfully!');
+    }
   };
 
   const openEditModal = (product) => {
@@ -77,7 +111,7 @@ const AdminDashboard = () => {
       name: product.name,
       category: product.category,
       price: product.price,
-      stock: product.stock,
+      stockQuantity: product.stockQuantity,
       description: product.description,
       image: product.image
     });
@@ -118,7 +152,7 @@ const AdminDashboard = () => {
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <h6 className="text-muted">Low Stock Items</h6>
-                  <h3>{products.filter(p => p.stock < 5).length}</h3>
+                  <h3>{products.filter((p) => p.stockQuantity < 5).length}</h3>
                 </div>
                 <FaShoppingCart className="dashboard-icon" />
               </div>
@@ -141,12 +175,12 @@ const AdminDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {products.map(product => (
-                <tr key={product.id} className={product.stock < 5 ? 'low-stock' : ''}>
+              {products.map((product) => (
+                <tr key={product.productID} className={product.stockQuantity < 5 ? 'low-stock' : ''}>
                   <td>
-                    <img 
-                      src={product.image} 
-                      alt={product.name} 
+                    <img
+                      src={product.image}
+                      alt={product.name}
                       className="product-thumbnail"
                     />
                   </td>
@@ -154,32 +188,32 @@ const AdminDashboard = () => {
                   <td>{product.category}</td>
                   <td>${product.price}</td>
                   <td>
-                    <span className={`stock-badge ${product.stock < 5 ? 'low' : 'normal'}`}>
-                      {product.stock}
+                    <span className={`stock-badge ${product.stockQuantity < 5 ? 'low' : 'normal'}`}>
+                      {product.stockQuantity}
                     </span>
                   </td>
                   <td>
-                    <Button 
-                      variant="outline-primary" 
-                      size="sm" 
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
                       className="me-2"
                       onClick={() => openEditModal(product)}
                     >
                       <FaEdit />
                     </Button>
-                    <Button 
-                      variant="outline-danger" 
+                    <Button
+                      variant="outline-danger"
                       size="sm"
                       className="me-2"
-                      onClick={() => handleDeleteProduct(product.id)}
+                      onClick={() => handleDeleteProduct(product.productID)}
                     >
                       <FaTrash />
                     </Button>
-                    {product.stock < 5 && (
-                      <Button 
-                        variant="outline-success" 
+                    {product.stockQuantity < 5 && (
+                      <Button
+                        variant="outline-success"
                         size="sm"
-                        onClick={() => handleReorder(product.id)}
+                        onClick={() => handleReorder(product.productID)}
                       >
                         Reorder
                       </Button>
@@ -204,7 +238,7 @@ const AdminDashboard = () => {
               <Form.Control
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
               />
             </Form.Group>
@@ -213,7 +247,7 @@ const AdminDashboard = () => {
               <Form.Control
                 type="text"
                 value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 required
               />
             </Form.Group>
@@ -222,7 +256,7 @@ const AdminDashboard = () => {
               <Form.Control
                 type="number"
                 value={formData.price}
-                onChange={(e) => setFormData({...formData, price: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 required
               />
             </Form.Group>
@@ -230,8 +264,8 @@ const AdminDashboard = () => {
               <Form.Label>Stock</Form.Label>
               <Form.Control
                 type="number"
-                value={formData.stock}
-                onChange={(e) => setFormData({...formData, stock: e.target.value})}
+                value={formData.stockQuantity}
+                onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
                 required
               />
             </Form.Group>
@@ -240,7 +274,7 @@ const AdminDashboard = () => {
               <Form.Control
                 as="textarea"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
               />
             </Form.Group>
@@ -249,7 +283,7 @@ const AdminDashboard = () => {
               <Form.Control
                 type="text"
                 value={formData.image}
-                onChange={(e) => setFormData({...formData, image: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
                 required
               />
             </Form.Group>
@@ -272,7 +306,7 @@ const AdminDashboard = () => {
               <Form.Control
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
               />
             </Form.Group>
@@ -281,7 +315,7 @@ const AdminDashboard = () => {
               <Form.Control
                 type="text"
                 value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 required
               />
             </Form.Group>
@@ -290,7 +324,7 @@ const AdminDashboard = () => {
               <Form.Control
                 type="number"
                 value={formData.price}
-                onChange={(e) => setFormData({...formData, price: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 required
               />
             </Form.Group>
@@ -298,8 +332,8 @@ const AdminDashboard = () => {
               <Form.Label>Stock</Form.Label>
               <Form.Control
                 type="number"
-                value={formData.stock}
-                onChange={(e) => setFormData({...formData, stock: e.target.value})}
+                value={formData.stockQuantity}
+                onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
                 required
               />
             </Form.Group>
@@ -308,7 +342,7 @@ const AdminDashboard = () => {
               <Form.Control
                 as="textarea"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
               />
             </Form.Group>
@@ -317,7 +351,7 @@ const AdminDashboard = () => {
               <Form.Control
                 type="text"
                 value={formData.image}
-                onChange={(e) => setFormData({...formData, image: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
                 required
               />
             </Form.Group>

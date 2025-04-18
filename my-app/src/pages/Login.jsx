@@ -23,13 +23,13 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     // Basic validation
     if (!formData.email || !formData.password) {
       setErrorMessage("Please fill in all fields");
       return;
     }
-
+  
     try {
       let tableName = "";
       switch (formData.userType) {
@@ -46,35 +46,35 @@ const Login = () => {
           setErrorMessage("Invalid user type");
           return;
       }
-
+  
       // Query the respective table
       const { data, error } = await supabase
         .from(tableName)
         .select("*")
         .eq("email", formData.email)
         .single();
-
+  
       if (error || !data) {
         setErrorMessage("Invalid email or user does not exist");
         return;
       }
-
+  
       // Validate password
       if (data.password !== formData.password) {
         setErrorMessage("Incorrect password");
         return;
       }
-
-      // Redirect based on user type
+  
+      // Redirect based on user type and pass the ID
       switch (formData.userType) {
         case "customer":
-          navigate("/home");
+          navigate("/profile", { state: { userId: data.customerID } });
           break;
         case "admin":
-          navigate("/admin");
+          navigate("/admin", { state: { userId: data.adminID } });
           break;
         case "rider":
-          navigate("/rider");
+          navigate("/rider", { state: { userId: data.personnelID } });
           break;
         default:
           navigate("/home");
@@ -84,7 +84,6 @@ const Login = () => {
       setErrorMessage("An error occurred. Please try again later.");
     }
   };
-
   return (
     <div className="auth-container">
       <Container>

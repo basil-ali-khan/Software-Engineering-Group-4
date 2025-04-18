@@ -1,0 +1,103 @@
+.profile-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.profile-title {
+  color: #2c3e50;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.profile-card {
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease-in-out;
+}
+
+.profile-card:hover {
+  transform: translateY(-2px);
+}
+
+.field-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+}
+
+.field-label {
+  font-weight: 600;
+  color: #2c3e50;
+  display: block;
+}
+
+.field-value {
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+.field-input {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 8px;
+  margin-top: 4px;
+}
+
+.optional-text {
+  color: #6c757d;
+  font-size: 0.8rem;
+  margin-left: 8px;
+}
+
+.edit-button, .save-button {
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.section-title {
+  color: #2c3e50;
+  font-weight: 600;
+  border-bottom: 2px solid #f8f9fa;
+  padding-bottom: 10px;
+}
+
+.custom-accordion .accordion-item {
+  border: none;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.custom-accordion .accordion-button {
+  background-color: #f8f9fa;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.custom-accordion .accordion-button:not(.collapsed) {
+  background-color: #e9ecef;
+  color: #2c3e50;
+}
+
+.logout-button {
+  padding: 10px 30px;
+  border-radius: 25px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.logout-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}

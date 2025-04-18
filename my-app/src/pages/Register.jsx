@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Card, Form, Button, Container } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from './supabaseClient'; // Import Supabase client
 import '../styles/commonStyles.css';
 
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
-    username: '',
+    email: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: '',
     address: ''
@@ -20,15 +22,50 @@ const Register = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (formData.password !== formData.confirmPassword) {
       alert("Passwords don't match!");
       return;
     }
-    // Add registration logic here
-    console.log('Registration data:', formData);
-    navigate('/login');
+
+    try {
+      // Check if email already exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from('customer')
+        .select('email')
+        .eq('email', formData.email)
+        .single();
+
+      if (existingUser) {
+        alert('Email already exists. Please use a different email.');
+        return;
+      }
+
+      // Insert new customer into the database
+      const { error: insertError } = await supabase.from('customer').insert([
+        {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          phoneNumber: formData.phoneNumber,
+          address: formData.address
+        }
+      ]);
+
+      if (insertError) {
+        console.error('Error inserting data:', insertError);
+        alert('An error occurred during registration. Please try again.');
+        return;
+      }
+
+      alert('Registration successful!');
+      navigate('/login');
+    } catch (err) {
+      console.error('Error during registration:', err);
+      alert('An error occurred. Please try again later.');
+    }
   };
 
   return (
@@ -51,13 +88,25 @@ const Register = () => {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label>Username</Form.Label>
+                <Form.Label>Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Enter your email"
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Phone Number</Form.Label>
                 <Form.Control
                   type="text"
-                  name="username"
-                  value={formData.username}
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
                   onChange={handleChange}
-                  placeholder="Choose a username"
+                  placeholder="Enter your phone number"
                   required
                 />
               </Form.Group>

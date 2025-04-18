@@ -68,7 +68,7 @@ const Login = () => {
       // Redirect based on user type and pass the ID
       switch (formData.userType) {
         case "customer":
-          navigate("/profile", { state: { userId: data.customerID } });
+          navigate("/profile", { state: { userId: data.customerID, userType: formData.userType } });
           break;
         case "admin":
           navigate("/admin", { state: { userId: data.adminID } });

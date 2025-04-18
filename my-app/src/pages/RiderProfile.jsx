@@ -1,224 +1,268 @@
-import React, { useState } from 'react';
-import { Container, Card, Form, Button, Table, Badge } from 'react-bootstrap';
-import { FaUser, FaEnvelope, FaPhone, FaIdCard, FaMotorcycle, FaEdit, FaSave, FaMapMarkerAlt } from 'react-icons/fa';
-import '../styles/RiderProfile.css';
+import React, { useState, useEffect } from 'react';
+import { Container, Table, Button, Card, Form, Row, Col } from 'react-bootstrap';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from './supabaseClient';
 
 const RiderProfile = () => {
-  const [riderData, setRiderData] = useState({
-    name: 'John Doe',
-    email: '',
-    contact: '',
-    cnic: '1234567890123',
-    numberPlate: 'ABC-123'
-  });
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { userId } = location.state || {};
 
-  const [editing, setEditing] = useState({
-    name: false,
-    email: false,
-    contact: false,
-    cnic: false,
-    numberPlate: false
-  });
+  const [riderDetails, setRiderDetails] = useState(null);
+  const [pendingOrders, setPendingOrders] = useState([]);
+  const [acceptedOrders, setAcceptedOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample orders data with updated structure
-  const [orders, setOrders] = useState([
-    {
-      id: 1,
-      customer: 'John Doe',
-      address: '123 Main St, City',
-      items: ['Milk', 'Bread', 'Eggs'],
-      total: 25.99,
-      status: 'pending'
-    },
-    {
-      id: 2,
-      customer: 'Jane Smith',
-      address: '456 Oak Ave, Town',
-      items: ['Fruits', 'Vegetables'],
-      total: 32.50,
-      status: 'in-progress'
-    },
-    {
-      id: 3,
-      customer: 'Mike Johnson',
-      address: '789 Pine Rd, Village',
-      items: ['Meat', 'Fish', 'Rice'],
-      total: 45.75,
-      status: 'completed'
+  useEffect(() => {
+    const fetchRiderDetails = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('deliverypersonnel')
+          .select('*')
+          .eq('personnelID', userId)
+          .single();
+        if (error) console.error('Error fetching rider details:', error);
+        else setRiderDetails(data);
+      } catch (err) {
+        console.error('Unexpected error fetching rider details:', err);
+      }
+    };
+
+    const fetchPendingOrders = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('Order')
+          .select('*')
+          .eq('accepted', 'no');
+        if (error) console.error('Error fetching pending orders:', error);
+        else setPendingOrders(data || []);
+      } catch (err) {
+        console.error('Unexpected error fetching pending orders:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchAcceptedOrders = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('deliveryassignment')
+          .select('*, Order(*)')
+          .eq('personnelID', userId);
+        if (error) console.error('Error fetching accepted orders:', error);
+        else setAcceptedOrders(data || []);
+      } catch (err) {
+        console.error('Unexpected error fetching accepted orders:', err);
+      }
+    };
+
+    if (userId) {
+      fetchRiderDetails();
+      fetchPendingOrders();
+      fetchAcceptedOrders();
     }
-  ]);
+  }, [userId]);
 
-  const handleEdit = (field) => {
-    setEditing(prev => ({
-      ...prev,
-      [field]: true
-    }));
+  const handleLogout = () => {
+    // Clear session or authentication data (if applicable)
+    supabase.auth.signOut(); // If using Supabase authentication
+    navigate('/login'); // Redirect to login page
   };
 
-  const handleSave = (field) => {
-    setEditing(prev => ({
-      ...prev,
-      [field]: false
-    }));
-    localStorage.setItem('riderData', JSON.stringify(riderData));
-  };
+  const handleAcceptOrder = async (orderId) => {
+    try {
+      const { error: updateError } = await supabase
+        .from('Order')
+        .update({ accepted: 'yes' })
+        .eq('orderID', orderId);
+      if (updateError) {
+        console.error('Error updating order status in Order table:', updateError);
+        return;
+      }
 
-  const handleChange = (field, value) => {
-    if (field === 'contact' || field === 'cnic') {
-      const numbersOnly = value.replace(/\D/g, '');
-      setRiderData(prev => ({
-        ...prev,
-        [field]: numbersOnly
-      }));
-    } else {
-      setRiderData(prev => ({
-        ...prev,
-        [field]: value
-      }));
+      const { data, error: assignmentError } = await supabase
+        .from('deliveryassignment')
+        .insert({
+          orderID: orderId,
+          personnelID: userId,
+          status: 'accepted',
+          acceptedAt: new Date().toISOString(),
+        })
+        .select('*, Order(*)');
+
+      if (assignmentError) {
+        console.error('Error adding to accepted orders in deliveryassignment table:', assignmentError);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        console.error('No data returned from insert query');
+        return;
+      }
+
+      setPendingOrders((prevOrders) =>
+        prevOrders.filter((order) => order.orderID !== orderId)
+      );
+
+      setAcceptedOrders((prevOrders) => [...prevOrders, data[0]]);
+
+      alert('Order accepted successfully!');
+    } catch (err) {
+      console.error('Unexpected error while accepting order:', err);
     }
   };
 
-  const handleStatusUpdate = (orderId, newStatus) => {
-    setOrders(orders.map(order =>
-      order.id === orderId ? { ...order, status: newStatus } : order
-    ));
-  };
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    try {
+      const updateData = { status: newStatus };
+      if (newStatus === 'delivered') {
+        updateData.deliveredAt = new Date().toISOString();
+      }
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'pending':
-        return <Badge bg="warning">Pending</Badge>;
-      case 'in-progress':
-        return <Badge bg="primary">In Progress</Badge>;
-      case 'completed':
-        return <Badge bg="success">Completed</Badge>;
-      default:
-        return <Badge bg="secondary">Unknown</Badge>;
+      const { error } = await supabase
+        .from('deliveryassignment')
+        .update(updateData)
+        .eq('orderID', orderId)
+        .eq('personnelID', userId);
+
+      if (error) {
+        console.error('Error updating order status:', error);
+        return;
+      }
+
+      setAcceptedOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.orderID === orderId
+            ? { ...order, ...updateData }
+            : order
+        )
+      );
+
+      alert('Order status updated successfully!');
+    } catch (err) {
+      console.error('Unexpected error while updating order status:', err);
     }
   };
-
-  const renderEditableField = (label, field, icon, isEditable = true) => (
-    <Card className="mb-3 rider-card">
-      <Card.Body>
-        <div className="d-flex justify-content-between align-items-center">
-          <div className="d-flex align-items-center">
-            <div className="rider-field-icon me-3">
-              {icon}
-            </div>
-            <div>
-              <span className="rider-field-label">{label}</span>
-              {!editing[field] ? (
-                <div className="rider-field-value">{riderData[field] || 'Not set'}</div>
-              ) : (
-                <Form.Control
-                  type={field === 'contact' ? 'tel' : 'text'}
-                  value={riderData[field]}
-                  onChange={(e) => handleChange(field, e.target.value)}
-                  size="sm"
-                  className="rider-field-input"
-                  pattern={field === 'contact' ? '[0-9]*' : undefined}
-                  inputMode={field === 'contact' ? 'numeric' : 'text'}
-                  placeholder={
-                    field === 'contact'
-                      ? 'Enter numbers only'
-                      : undefined
-                  }
-                />
-              )}
-            </div>
-          </div>
-          {isEditable && (
-            !editing[field] ? (
-              <Button 
-                variant="outline-primary" 
-                size="sm"
-                className="rider-edit-button"
-                onClick={() => handleEdit(field)}
-              >
-                <FaEdit />
-              </Button>
-            ) : (
-              <Button 
-                variant="success" 
-                size="sm"
-                className="rider-save-button"
-                onClick={() => handleSave(field)}
-              >
-                <FaSave />
-              </Button>
-            )
-          )}
-        </div>
-      </Card.Body>
-    </Card>
-  );
 
   return (
     <Container className="rider-container py-5">
-      <h2 className="rider-title mb-4">
-        <FaUser className="me-2" />
-        Rider Profile
-      </h2>
-      
-      <section className="mb-5">
-        {renderEditableField('Name', 'name', <FaUser />, false)}
-        {renderEditableField('Email', 'email', <FaEnvelope />)}
-        {renderEditableField('Contact', 'contact', <FaPhone />)}
-        {renderEditableField('CNIC', 'cnic', <FaIdCard />, false)}
-        {renderEditableField('Bike Number Plate', 'numberPlate', <FaMotorcycle />, false)}
-      </section>
+      <Row className="mb-4">
+        <Col>
+          <h2>Rider Profile</h2>
+        </Col>
+        <Col className="text-end">
+          <Button variant="danger" onClick={handleLogout}>
+            Logout
+          </Button>
+        </Col>
+      </Row>
 
-      <section className="rider-orders-section">
-        <h3 className="rider-section-title mb-4">Delivery Orders</h3>
-        <Table responsive>
+      {riderDetails && (
+        <Card className="mb-4">
+          <Card.Body>
+            <p><strong>Name:</strong> {riderDetails.name}</p>
+            <p><strong>Email:</strong> {riderDetails.email}</p>
+            <p><strong>Phone:</strong> {riderDetails.phone}</p>
+            <p><strong>CNIC:</strong> {riderDetails.cnic}</p>
+            <p><strong>Bike Plate Number:</strong> {riderDetails.bikeNumber}</p>
+          </Card.Body>
+        </Card>
+      )}
+
+      <h2 className="rider-title mb-4">Accepted Orders</h2>
+      <Table responsive bordered>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Status</th>
+            <th>Accepted At</th>
+            <th>Delivered At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {acceptedOrders.length > 0 ? (
+            acceptedOrders.map((entry) => {
+              const order = entry.Order || {};
+              return (
+                <tr key={entry.orderID}>
+                  <td>{entry.orderID}</td>
+                  <td>{entry.status}</td>
+                  <td>{new Date(entry.acceptedAt).toLocaleString()}</td>
+                  <td>
+                    {entry.deliveredAt
+                      ? new Date(entry.deliveredAt).toLocaleString()
+                      : 'Not Delivered'}
+                  </td>
+                  <td>
+                    <Form.Select
+                      value={entry.status}
+                      onChange={(e) =>
+                        handleUpdateStatus(entry.orderID, e.target.value)
+                      }
+                    >
+                      <option value="accepted">Accepted</option>
+                      <option value="out for delivery">Out for Delivery</option>
+                      <option value="delivered">Delivered</option>
+                    </Form.Select>
+                  </td>
+                </tr>
+              );
+            })
+          ) : (
+            <tr>
+              <td colSpan="5" className="text-center">
+                No accepted orders available.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </Table>
+
+      <h2 className="rider-title mb-4">Pending Orders</h2>
+      {loading ? (
+        <div>Loading...</div>
+      ) : (
+        <Table responsive bordered>
           <thead>
             <tr>
               <th>Order ID</th>
-              <th>Customer</th>
-              <th>Address</th>
-              <th>Items</th>
-              <th>Total</th>
-              <th>Status</th>
+              <th>Customer ID</th>
+              <th>Total Amount</th>
+              <th>Order Date</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {orders.map(order => (
-              <tr key={order.id}>
-                <td>#{order.id}</td>
-                <td>{order.customer}</td>
-                <td>
-                  <FaMapMarkerAlt className="me-2" />
-                  {order.address}
-                </td>
-                <td>{order.items.join(', ')}</td>
-                <td>${order.total.toFixed(2)}</td>
-                <td>{getStatusBadge(order.status)}</td>
-                <td>
-                  {order.status === 'pending' && (
+            {pendingOrders.length > 0 ? (
+              pendingOrders.map((order) => (
+                <tr key={order.orderID}>
+                  <td>{order.orderID}</td>
+                  <td>{order.customerID}</td>
+                  <td>${order.totalAmount.toFixed(2)}</td>
+                  <td>{new Date(order.orderDate).toLocaleString()}</td>
+                  <td>
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => handleStatusUpdate(order.id, 'in-progress')}
+                      onClick={() => handleAcceptOrder(order.orderID)}
                     >
                       Accept Order
                     </Button>
-                  )}
-                  {order.status === 'in-progress' && (
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={() => handleStatusUpdate(order.id, 'completed')}
-                    >
-                      Mark Completed
-                    </Button>
-                  )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5" className="text-center">
+                  No pending orders available.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </Table>
-      </section>
+      )}
     </Container>
   );
 };

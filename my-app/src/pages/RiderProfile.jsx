@@ -172,53 +172,57 @@ const RiderProfile = () => {
 
       <h2 className="rider-title mb-4">Accepted Orders</h2>
       <Table responsive bordered>
-        <thead>
-          <tr>
-            <th>Order ID</th>
-            <th>Status</th>
-            <th>Accepted At</th>
-            <th>Delivered At</th>
-            <th>Actions</th>
+  <thead>
+    <tr>
+      <th>Order ID</th>
+      <th>Status</th>
+      <th>Accepted At</th>
+      <th>Delivered At</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {acceptedOrders.length > 0 ? (
+      acceptedOrders.map((entry) => {
+        const order = entry.Order || {};
+        return (
+          <tr key={entry.orderID}>
+            <td>{entry.orderID}</td>
+            <td>{entry.status}</td>
+            <td>{new Date(entry.acceptedAt).toLocaleString()}</td>
+            <td>
+              {entry.deliveredAt
+                ? new Date(entry.deliveredAt).toLocaleString()
+                : 'Not Delivered'}
+            </td>
+            <td>
+              {entry.status === 'delivered' ? (
+                <span className="text-muted">Delivered</span>
+              ) : (
+                <Form.Select
+                  value={entry.status}
+                  onChange={(e) =>
+                    handleUpdateStatus(entry.orderID, e.target.value)
+                  }
+                >
+                  <option value="accepted">Accepted</option>
+                  <option value="out for delivery">Out for Delivery</option>
+                  <option value="delivered">Delivered</option>
+                </Form.Select>
+              )}
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {acceptedOrders.length > 0 ? (
-            acceptedOrders.map((entry) => {
-              const order = entry.Order || {};
-              return (
-                <tr key={entry.orderID}>
-                  <td>{entry.orderID}</td>
-                  <td>{entry.status}</td>
-                  <td>{new Date(entry.acceptedAt).toLocaleString()}</td>
-                  <td>
-                    {entry.deliveredAt
-                      ? new Date(entry.deliveredAt).toLocaleString()
-                      : 'Not Delivered'}
-                  </td>
-                  <td>
-                    <Form.Select
-                      value={entry.status}
-                      onChange={(e) =>
-                        handleUpdateStatus(entry.orderID, e.target.value)
-                      }
-                    >
-                      <option value="accepted">Accepted</option>
-                      <option value="out for delivery">Out for Delivery</option>
-                      <option value="delivered">Delivered</option>
-                    </Form.Select>
-                  </td>
-                </tr>
-              );
-            })
-          ) : (
-            <tr>
-              <td colSpan="5" className="text-center">
-                No accepted orders available.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </Table>
+        );
+      })
+    ) : (
+      <tr>
+        <td colSpan="5" className="text-center">
+          No accepted orders available.
+        </td>
+      </tr>
+    )}
+  </tbody>
+</Table>
 
       <h2 className="rider-title mb-4">Pending Orders</h2>
       {loading ? (

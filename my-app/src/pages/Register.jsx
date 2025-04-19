@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Form, Button, Container } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from './supabaseClient'; // Import Supabase client
+import { supabase } from './supabaseClient';
 import '../styles/commonStyles.css';
 
 const Register = () => {
@@ -13,33 +13,92 @@ const Register = () => {
     confirmPassword: '',
     address: ''
   });
+
+  // Add state for validation errors
+  const [errors, setErrors] = useState({
+    name: '',
+    email: '',
+    phoneNumber: '',
+    password: '',
+    confirmPassword: ''
+  });
+
   const navigate = useNavigate();
 
+  const validateForm = () => {
+    let tempErrors = {};
+    let isValid = true;
+
+    // Phone number validation
+    if (!formData.phoneNumber.match(/^\d{11}$/)) {
+      tempErrors.phoneNumber = 'Phone number must be exactly 11 digits';
+      isValid = false;
+    }
+
+    // Password validation
+    if (formData.password.length < 6) {
+      tempErrors.password = 'Password must be at least 6 characters long';
+      isValid = false;
+    }
+
+    // Confirm password validation
+    if (formData.password !== formData.confirmPassword) {
+      tempErrors.confirmPassword = 'Passwords do not match';
+      isValid = false;
+    }
+
+    // Name validation
+    if (formData.name.trim().length < 2) {
+      tempErrors.name = 'Name is required';
+      isValid = false;
+    }
+
+    // Email validation
+    if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      tempErrors.email = 'Please enter a valid email address';
+      isValid = false;
+    }
+
+    setErrors(tempErrors);
+    return isValid;
+  };
+
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+
+    // Clear the error when user starts typing
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: ''
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match!");
+    if (!validateForm()) {
       return;
     }
 
     try {
       // Check if email already exists
-      const { data: existingUser, error: checkError } = await supabase
+      const { data: existingUser } = await supabase
         .from('customer')
         .select('email')
         .eq('email', formData.email)
         .single();
 
       if (existingUser) {
-        alert('Email already exists. Please use a different email.');
+        setErrors({
+          ...errors,
+          email: 'Email already exists. Please use a different email.'
+        });
         return;
       }
 
@@ -56,15 +115,20 @@ const Register = () => {
 
       if (insertError) {
         console.error('Error inserting data:', insertError);
-        alert('An error occurred during registration. Please try again.');
+        setErrors({
+          ...errors,
+          general: 'An error occurred during registration. Please try again.'
+        });
         return;
       }
 
-      alert('Registration successful!');
       navigate('/login');
     } catch (err) {
       console.error('Error during registration:', err);
-      alert('An error occurred. Please try again later.');
+      setErrors({
+        ...errors,
+        general: 'An error occurred. Please try again later.'
+      });
     }
   };
 
@@ -83,8 +147,12 @@ const Register = () => {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Enter your full name"
+                  isInvalid={!!errors.name}
                   required
                 />
+                <Form.Control.Feedback type="invalid">
+                  {errors.name}
+                </Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group className="mb-3">
@@ -95,8 +163,12 @@ const Register = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Enter your email"
+                  isInvalid={!!errors.email}
                   required
                 />
+                <Form.Control.Feedback type="invalid">
+                  {errors.email}
+                </Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group className="mb-3">
@@ -106,9 +178,13 @@ const Register = () => {
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={handleChange}
-                  placeholder="Enter your phone number"
+                  placeholder="Enter your 11-digit phone number"
+                  isInvalid={!!errors.phoneNumber}
                   required
                 />
+                <Form.Control.Feedback type="invalid">
+                  {errors.phoneNumber}
+                </Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group className="mb-3">
@@ -119,8 +195,12 @@ const Register = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Enter password"
+                  isInvalid={!!errors.password}
                   required
                 />
+                <Form.Control.Feedback type="invalid">
+                  {errors.password}
+                </Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group className="mb-3">
@@ -131,8 +211,12 @@ const Register = () => {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   placeholder="Confirm password"
+                  isInvalid={!!errors.confirmPassword}
                   required
                 />
+                <Form.Control.Feedback type="invalid">
+                  {errors.confirmPassword}
+                </Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group className="mb-3">
@@ -147,6 +231,10 @@ const Register = () => {
                   required
                 />
               </Form.Group>
+
+              {errors.general && (
+                <div className="text-danger mb-3">{errors.general}</div>
+              )}
 
               <Button variant="primary" type="submit" className="w-100 mb-3">
                 Register

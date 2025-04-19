@@ -1,0 +1,147 @@
+.rider-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.rider-title {
+  color: #2c3e50;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.rider-card {
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease-in-out;
+}
+
+.rider-card:hover {
+  transform: translateY(-2px);
+}
+
+.rider-field-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+}
+
+.rider-field-label {
+  font-weight: 600;
+  color: #2c3e50;
+  display: block;
+}
+
+.rider-field-value {
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+.rider-field-input {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 8px;
+  margin-top: 4px;
+}
+
+.rider-edit-button, .rider-save-button {
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.rider-section-title {
+  color: #2c3e50;
+  font-weight: 600;
+  border-bottom: 2px solid #f8f9fa;
+  padding-bottom: 10px;
+}
+
+/* Orders Section Styles */
+.rider-orders-section {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
+}
+
+.rider-orders-section .table {
+  margin-bottom: 0;
+}
+
+.rider-orders-section th {
+  background-color: #f8f9fa;
+  color: #2c3e50;
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.rider-orders-section td {
+  vertical-align: middle;
+}
+
+.rider-orders-section .badge {
+  padding: 6px 12px;
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+.rider-orders-section .btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.rider-orders-section .btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Non-editable field styles */
+.rider-card .rider-field-value {
+  color: #495057;
+  font-weight: 500;
+}
+
+.rider-card .rider-field-icon {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+/* Status badge colors */
+.rider-badge-success {
+  background-color: #28a745 !important;
+}
+
+.rider-badge-warning {
+  background-color: #ffc107 !important;
+  color: #212529 !important;
+}
+
+.rider-badge-secondary {
+  background-color: #6c757d !important;
+}
+
+/* Action button styles */
+.rider-action-button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.rider-action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

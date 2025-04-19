@@ -41,6 +41,10 @@ export const CartProvider = ({ children }) => {
     );
   };
 
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
   const getCartTotal = () => {
     const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
     const tax = subtotal * 0.10; // 10% tax
@@ -54,6 +58,7 @@ export const CartProvider = ({ children }) => {
       addToCart,
       removeFromCart,
       updateQuantity,
+      clearCart,
       getCartTotal
     }}>
       {children}

@@ -3,11 +3,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Container, Card, Accordion, Form, Button, Alert } from 'react-bootstrap';
 import { FaSignOutAlt, FaEdit, FaSave } from 'react-icons/fa';
 import { supabase } from './supabaseClient';
+import { useCart } from '../context/CartContext';
 
 const Profile = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const userId = location.state?.userId || localStorage.getItem('userId');
+  const { clearCart } = useCart();
 
   const [userData, setUserData] = useState({
     name: '',
@@ -103,6 +105,7 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
+    clearCart();
     localStorage.removeItem('userId');
     localStorage.removeItem('userType');
     navigate('/login');

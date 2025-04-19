@@ -244,7 +244,7 @@ const RiderProfile = () => {
                 <tr key={order.orderID}>
                   <td>{order.orderID}</td>
                   <td>{order.customerID}</td>
-                  <td>${order.totalAmount.toFixed(2)}</td>
+                  <td>Rs. {order.totalAmount.toFixed(2)}</td>
                   <td>{new Date(order.orderDate).toLocaleString()}</td>
                   <td>
                     <Button

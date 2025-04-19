@@ -3,10 +3,12 @@ import { Container, Row, Col, Card, Table, Button, Modal, Form } from 'react-boo
 import { FaEdit, FaTrash, FaPlus, FaBoxOpen, FaShoppingCart, FaSignOutAlt } from 'react-icons/fa';
 import { supabase } from './supabaseClient'; // Import Supabase client
 import { useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
 import '../styles/AdminDashboard.css';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { clearCart } = useCart();
   const [products, setProducts] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -149,6 +151,7 @@ const AdminDashboard = () => {
     if (error) {
       console.error('Error logging out:', error);
     } else {
+      clearCart();
       localStorage.removeItem('userId');
       localStorage.removeItem('userType');
       navigate('/login');

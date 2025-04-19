@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Card, Form, Button, Container, Row, Col } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient"; // Import Supabase client
+import { useCart } from "../context/CartContext";
 import "../styles/commonStyles.css";
 
 const Login = () => {
@@ -12,6 +13,7 @@ const Login = () => {
   });
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
+  const { clearCart } = useCart();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -64,6 +66,9 @@ const Login = () => {
         setErrorMessage("Incorrect password");
         return;
       }
+  
+      // Clear cart before login
+      clearCart();
   
       // Redirect based on user type and pass the ID
       switch (formData.userType) {

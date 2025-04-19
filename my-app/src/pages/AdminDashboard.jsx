@@ -36,22 +36,46 @@ const AdminDashboard = () => {
   // Add a new product
   const handleAddProduct = async (e) => {
     e.preventDefault();
-    const { data, error } = await supabase.from('product').insert([formData]);
-    if (error) {
-      console.error('Error adding product:', error);
-      alert('Failed to add product.');
-    } else {
-      setProducts([...products, ...data]);
-      setShowAddModal(false);
-      setFormData({
-        name: '',
-        category: '',
-        price: '',
-        stockQuantity: '',
-        description: '',
-        image: ''
-      });
-      alert('Product added successfully!');
+    try {
+      // Generate a unique productID
+      const maxId = Math.max(...products.map(p => p.productID || 0), 0);
+      const newProductId = maxId + 1;
+
+      // Create a new product object with all required fields
+      const newProduct = {
+        productID: newProductId,
+        name: formData.name,
+        category: formData.category,
+        price: parseFloat(formData.price),
+        stockQuantity: parseInt(formData.stockQuantity),
+        description: formData.description,
+        image: formData.image
+      };
+
+      const { data, error } = await supabase
+        .from('product')
+        .insert([newProduct])
+        .select();
+
+      if (error) {
+        console.error('Error adding product:', error);
+        alert('Failed to add product: ' + error.message);
+      } else {
+        setProducts([...products, ...data]);
+        setShowAddModal(false);
+        setFormData({
+          name: '',
+          category: '',
+          price: '',
+          stockQuantity: '',
+          description: '',
+          image: ''
+        });
+        alert('Product added successfully!');
+      }
+    } catch (error) {
+      console.error('Error in handleAddProduct:', error);
+      alert('Failed to add product. Please check the console for details.');
     }
   };
 

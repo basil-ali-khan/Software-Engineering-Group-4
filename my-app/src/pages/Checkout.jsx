@@ -84,58 +84,67 @@ const Checkout = () => {
     }));
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (step === 1) {
       setStep(2);
     } else {
       setIsSubmitting(true);
-      
       try {
-        // Update product quantities in the database
-        for (const item of cartItems) {
-          const { error } = await supabase
-            .from('product')
-            .update({ stockQuantity: item.stockQuantity - item.quantity })
-            .eq('productID', item.productID);
-
-          if (error) {
-            console.error('Error updating product quantity:', error);
-            throw error;
-          }
-        }
-
-        // Handle order submission
-        const orderData = {
-          shipping: formData.shipping,
-          payment: {
-            method: formData.payment.method
-          },
-          orderDetails: {
-            items: cartItems,
-            subtotal,
-            tax,
-            total
-          }
-        };
-        
-        // Navigate to confirmation page
+        const customerID = localStorage.getItem('userId');
+        // First create the order in the Order table
+        const { data: orderData, error: orderError } = await supabase
+          .from('Order')
+          .insert([{
+            customerID: customerID,
+            orderDate: new Date().toISOString(),
+            totalAmount: total,
+            accepted: 'no'
+          }])
+          .select()
+          .single();
+        if (orderError) throw orderError;
+        const orderProducts = cartItems.map(item => ({
+          orderID: orderData.orderID,
+          productID: item.productID,
+          quantity: item.quantity
+        }));
+        const { error: productError } = await supabase
+          .from('orderproduct')
+          .insert(orderProducts);
+        if (productError) throw productError;
+        // Fixed OrderConfirmation navigation state
         navigate('/order-confirmation', { 
-          state: { orderData },
-          replace: true 
+          state: { 
+            orderData: {
+              orderID: orderData.orderID,
+              orderDate: orderData.orderDate,
+              shipping: formData.shipping,
+              payment: formData.payment,
+              orderDetails: {
+                items: cartItems,
+                subtotal: subtotal,
+                tax: tax,
+                total: total
+              }
+            }
+          }
         });
         
-        // Clear cart after successful navigation
+        // Clear cart after successful order
         cartItems.forEach(item => {
           removeFromCart(item.productID);
         });
       } catch (error) {
         console.error('Error during checkout:', error);
         alert('An error occurred during checkout. Please try again.');
+      } finally {
         setIsSubmitting(false);
       }
     }
   };
+
 
   if (isLoading) {
     return <div className="checkout-container">Loading...</div>;

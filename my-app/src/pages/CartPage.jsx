@@ -48,7 +48,7 @@ const CartPage = () => {
                   </thead>
                   <tbody>
                     {cartItems.map((item) => (
-                      <tr key={item.id}>
+                      <tr key={item.productID}>
                         <td>
                           <div className="d-flex align-items-center">
                             <img 
@@ -65,7 +65,7 @@ const CartPage = () => {
                             <Button 
                               variant="outline-secondary" 
                               size="sm"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              onClick={() => updateQuantity(item.productID, item.quantity - 1)}
                               disabled={item.quantity <= 1}
                             >
                               -
@@ -74,7 +74,7 @@ const CartPage = () => {
                             <Button 
                               variant="outline-secondary" 
                               size="sm"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              onClick={() => updateQuantity(item.productID, item.quantity + 1)}
                             >
                               +
                             </Button>
@@ -85,7 +85,7 @@ const CartPage = () => {
                           <Button 
                             variant="danger" 
                             size="sm"
-                            onClick={() => removeFromCart(item.id)}
+                            onClick={() => removeFromCart(item.productID)}
                           >
                             <FaTrash />
                           </Button>

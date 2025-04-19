@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { supabase } from './supabaseClient';
 import '../styles/Checkout.css';
 
 const Checkout = () => {
@@ -10,18 +11,61 @@ const Checkout = () => {
   const { subtotal, tax, total } = getCartTotal();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     shipping: {
       fullName: '',
       address: '',
       area: '',
-      postalCode: '',
       phoneNumber: ''
     },
     payment: {
       method: 'cash'
     }
   });
+
+  // Load user data from database
+  useEffect(() => {
+    const loadUserData = async () => {
+      const userId = localStorage.getItem('userId');
+      
+      if (!userId) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('customer')
+          .select('name, address, phoneNumber')
+          .eq('customerID', userId)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user data:', error);
+          return;
+        }
+
+        if (data) {
+          setFormData(prev => ({
+            ...prev,
+            shipping: {
+              ...prev.shipping,
+              fullName: data.name || '',
+              address: data.address || '',
+              phoneNumber: data.phoneNumber || ''
+            }
+          }));
+        }
+      } catch (err) {
+        console.error('Error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [navigate]);
 
   // Only redirect if cart is empty and we're not submitting an order
   useEffect(() => {
@@ -40,39 +84,62 @@ const Checkout = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (step === 1) {
       setStep(2);
     } else {
       setIsSubmitting(true);
       
-      // Handle order submission
-      const orderData = {
-        shipping: formData.shipping,
-        payment: {
-          method: formData.payment.method
-        },
-        orderDetails: {
-          items: cartItems,
-          subtotal,
-          tax,
-          total
+      try {
+        // Update product quantities in the database
+        for (const item of cartItems) {
+          const { error } = await supabase
+            .from('product')
+            .update({ stockQuantity: item.stockQuantity - item.quantity })
+            .eq('productID', item.productID);
+
+          if (error) {
+            console.error('Error updating product quantity:', error);
+            throw error;
+          }
         }
-      };
-      
-      // Navigate to confirmation page
-      navigate('/order-confirmation', { 
-        state: { orderData },
-        replace: true 
-      });
-      
-      // Clear cart after successful navigation
-      cartItems.forEach(item => {
-        removeFromCart(item.id);
-      });
+
+        // Handle order submission
+        const orderData = {
+          shipping: formData.shipping,
+          payment: {
+            method: formData.payment.method
+          },
+          orderDetails: {
+            items: cartItems,
+            subtotal,
+            tax,
+            total
+          }
+        };
+        
+        // Navigate to confirmation page
+        navigate('/order-confirmation', { 
+          state: { orderData },
+          replace: true 
+        });
+        
+        // Clear cart after successful navigation
+        cartItems.forEach(item => {
+          removeFromCart(item.productID);
+        });
+      } catch (error) {
+        console.error('Error during checkout:', error);
+        alert('An error occurred during checkout. Please try again.');
+        setIsSubmitting(false);
+      }
     }
   };
+
+  if (isLoading) {
+    return <div className="checkout-container">Loading...</div>;
+  }
 
   return (
     <div className="checkout-container">
@@ -120,25 +187,14 @@ const Checkout = () => {
                 required
               />
             </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Postal Code</label>
-                <input
-                  type="text"
-                  value={formData.shipping.postalCode}
-                  onChange={(e) => handleInputChange('shipping', 'postalCode', e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Phone Number</label>
-                <input
-                  type="tel"
-                  value={formData.shipping.phoneNumber}
-                  onChange={(e) => handleInputChange('shipping', 'phoneNumber', e.target.value)}
-                  required
-                />
-              </div>
+            <div className="form-group">
+              <label>Phone Number</label>
+              <input
+                type="tel"
+                value={formData.shipping.phoneNumber}
+                onChange={(e) => handleInputChange('shipping', 'phoneNumber', e.target.value)}
+                required
+              />
             </div>
           </div>
         ) : (
@@ -150,59 +206,12 @@ const Checkout = () => {
                   type="radio"
                   name="paymentMethod"
                   value="cash"
-                  checked={formData.payment.method === 'cash'}
-                  onChange={(e) => handleInputChange('payment', 'method', e.target.value)}
+                  checked={true}
+                  readOnly
                 />
                 Cash on Delivery
               </label>
-              <label className="payment-option">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="card"
-                  checked={formData.payment.method === 'card'}
-                  onChange={(e) => handleInputChange('payment', 'method', e.target.value)}
-                />
-                Pay by Card
-              </label>
             </div>
-
-            {formData.payment.method === 'card' && (
-              <div className="card-details">
-                <div className="form-group">
-                  <label>Card Number</label>
-                  <input
-                    type="text"
-                    value={formData.payment.cardNumber}
-                    onChange={(e) => handleInputChange('payment', 'cardNumber', e.target.value)}
-                    placeholder="1234 5678 9012 3456"
-                    required
-                  />
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Expiry Date</label>
-                    <input
-                      type="text"
-                      value={formData.payment.expiryDate}
-                      onChange={(e) => handleInputChange('payment', 'expiryDate', e.target.value)}
-                      placeholder="MM/YY"
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>CVV</label>
-                    <input
-                      type="text"
-                      value={formData.payment.cvv}
-                      onChange={(e) => handleInputChange('payment', 'cvv', e.target.value)}
-                      placeholder="123"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 

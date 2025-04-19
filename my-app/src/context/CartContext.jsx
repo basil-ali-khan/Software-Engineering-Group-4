@@ -6,28 +6,35 @@ export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
 
   const addToCart = (product) => {
+    console.log('Adding product:', product);
+    
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === product.id);
+      // Check if product with same productID already exists
+      const existingItem = prevItems.find(item => item.productID === product.productID);
+      
       if (existingItem) {
+        // If item exists, update its quantity
         return prevItems.map(item =>
-          item.id === product.id
+          item.productID === product.productID
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
+      } else {
+        // If item doesn't exist, add it as new
+        return [...prevItems, { ...product, quantity: 1 }];
       }
-      return [...prevItems, { ...product, quantity: 1 }];
     });
   };
 
   const removeFromCart = (productId) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+    setCartItems(prevItems => prevItems.filter(item => item.productID !== productId));
   };
 
   const updateQuantity = (productId, newQuantity) => {
     if (newQuantity < 1) return;
     setCartItems(prevItems =>
       prevItems.map(item =>
-        item.id === productId
+        item.productID === productId
           ? { ...item, quantity: newQuantity }
           : item
       )

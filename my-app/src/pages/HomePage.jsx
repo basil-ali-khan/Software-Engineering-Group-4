@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient'; // Import the Supabase client
 import { Container, Row, Col, Card, Button, Form, InputGroup, Toast } from 'react-bootstrap';
-import { FaShoppingCart, FaSearch, FaHeart } from 'react-icons/fa';
+import { FaShoppingCart, FaSearch } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [showToast, setShowToast] = useState(false);
   const [products, setProducts] = useState([]); // Initialize products as an empty array
   const { addToCart } = useCart();
 
@@ -42,8 +41,6 @@ const HomePage = () => {
 
   const handleAddToCart = (product) => {
     addToCart(product);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
   };
 
   const filteredProducts = products.filter(product => {
@@ -55,16 +52,6 @@ const HomePage = () => {
 
   return (
     <Container fluid className="homepage-container">
-      {/* Toast Notification */}
-      <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 1000 }}>
-        <Toast show={showToast} onClose={() => setShowToast(false)} delay={2000} autohide>
-          <Toast.Header>
-            <strong className="me-auto">Success!</strong>
-          </Toast.Header>
-          <Toast.Body>Item added to cart</Toast.Body>
-        </Toast>
-      </div>
-
       {/* Search Bar */}
       <Row className="my-4">
         <Col md={6} className="mx-auto">
@@ -120,13 +107,6 @@ const HomePage = () => {
                       className="product-image"
                       alt={product.name}
                     />
-                    <Button 
-                      variant="light" 
-                      className="favorite-button"
-                      onClick={() => console.log('Added to favorites')}
-                    >
-                      <FaHeart />
-                    </Button>
                   </div>
                   <Card.Body className="d-flex flex-column">
                     <Card.Title className="product-title">{product.name}</Card.Title>

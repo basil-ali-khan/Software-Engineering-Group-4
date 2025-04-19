@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Button, Modal, Form } from 'react-bootstrap';
-import { FaEdit, FaTrash, FaPlus, FaBoxOpen, FaShoppingCart } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaBoxOpen, FaShoppingCart, FaSignOutAlt } from 'react-icons/fa';
 import { supabase } from './supabaseClient'; // Import Supabase client
+import { useNavigate } from 'react-router-dom';
 import '../styles/AdminDashboard.css';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -118,16 +120,24 @@ const AdminDashboard = () => {
     setShowEditModal(true);
   };
 
+  const handleLogout = () => {
+    navigate('/login');
+  };
+
   return (
     <Container fluid className="admin-dashboard">
       <Row className="mb-4">
         <Col>
           <h2>Admin Dashboard</h2>
         </Col>
-        <Col xs="auto">
+        <Col xs="auto" className="d-flex gap-2">
           <Button variant="success" onClick={() => setShowAddModal(true)}>
             <FaPlus className="me-2" />
             Add New Product
+          </Button>
+          <Button variant="danger" onClick={handleLogout}>
+            <FaSignOutAlt className="me-2" />
+            Logout
           </Button>
         </Col>
       </Row>

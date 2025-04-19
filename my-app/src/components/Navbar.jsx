@@ -9,6 +9,17 @@ const NavigationBar = () => {
   const navigate = useNavigate();
   const itemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
+  const handleProfileClick = (e) => {
+    e.preventDefault();
+    const userId = localStorage.getItem('userId');
+    const userType = localStorage.getItem('userType');
+    if (userId && userType) {
+      navigate('/profile', { state: { userId, userType } });
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <Navbar bg="light" expand="lg" className="mb-3">
       <Container>
@@ -24,7 +35,7 @@ const NavigationBar = () => {
                 <Badge bg="primary" className="ms-1">{itemsCount}</Badge>
               )}
             </Nav.Link>
-            <Nav.Link as={Link} to="/profile">
+            <Nav.Link onClick={handleProfileClick}>
               <FaUser className="me-1" />
               Profile
             </Nav.Link>

@@ -68,12 +68,18 @@ const Login = () => {
       // Redirect based on user type and pass the ID
       switch (formData.userType) {
         case "customer":
+          localStorage.setItem('userId', data.customerID);
+          localStorage.setItem('userType', formData.userType);
           navigate("/profile", { state: { userId: data.customerID, userType: formData.userType } });
           break;
         case "admin":
+          localStorage.setItem('userId', data.adminID);
+          localStorage.setItem('userType', formData.userType);
           navigate("/admin", { state: { userId: data.adminID } });
           break;
         case "rider":
+          localStorage.setItem('userId', data.personnelID);
+          localStorage.setItem('userType', formData.userType);
           navigate("/rider", { state: { userId: data.personnelID } });
           break;
         default:

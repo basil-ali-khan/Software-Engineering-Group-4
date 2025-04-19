@@ -1,27 +1,62 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Container, Card, Accordion, Form, Button } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Container, Card, Accordion, Form, Button, Alert } from 'react-bootstrap';
 import { FaSignOutAlt, FaEdit, FaSave } from 'react-icons/fa';
+import { supabase } from './supabaseClient';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [userData, setUserData] = useState(JSON.parse(localStorage.getItem('user')) || {
-    username: '',
+  const location = useLocation();
+  const userId = location.state?.userId || localStorage.getItem('userId');
+
+  const [userData, setUserData] = useState({
+    name: '',
     email: '',
-    contact: '',
-    alternateContact: '',
+    phoneNumber: '',
     address: ''
   });
 
-
-  
   const [editing, setEditing] = useState({
-    username: false,
+    name: false,
     email: false,
-    contact: false,
-    alternateContact: false,
+    phoneNumber: false,
     address: false
   });
+
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!userId) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('customer')
+          .select('*')
+          .eq('customerID', userId)
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setUserData({
+            name: data.name || '',
+            email: data.email || '',
+            phoneNumber: data.phoneNumber || '',
+            address: data.address || ''
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+        setError('Failed to load profile data');
+      }
+    };
+
+    fetchUserData();
+  }, [userId, navigate]);
 
   const handleEdit = (field) => {
     setEditing(prev => ({
@@ -30,17 +65,30 @@ const Profile = () => {
     }));
   };
 
-  const handleSave = (field) => {
-    setEditing(prev => ({
-      ...prev,
-      [field]: false
-    }));
-    // Save to localStorage
-    localStorage.setItem('user', JSON.stringify(userData));
+  const handleSave = async (field) => {
+    try {
+      const { error } = await supabase
+        .from('customer')
+        .update({ [field]: userData[field] })
+        .eq('customerID', userId);
+
+      if (error) throw error;
+
+      setEditing(prev => ({
+        ...prev,
+        [field]: false
+      }));
+      setSuccess('Profile updated successfully');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setError('Failed to update profile');
+      setTimeout(() => setError(''), 3000);
+    }
   };
 
   const handleChange = (field, value) => {
-    if (field === 'contact' || field === 'alternateContact') {
+    if (field === 'phoneNumber') {
       const numbersOnly = value.replace(/\D/g, '').slice(0, 15);
       setUserData(prev => ({
         ...prev,
@@ -55,24 +103,22 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userType');
     navigate('/login');
   };
 
-  const renderEditableField = (label, field, isOptional = false) => (
+  const renderEditableField = (label, field) => (
     <Card className="mb-3">
       <Card.Body>
         <div className="d-flex justify-content-between align-items-center">
           <div>
-            <span className="fw-bold me-2">
-              {label}:
-              {isOptional && <span className="text-muted fs-6 ms-1">(Optional)</span>}
-            </span>
+            <span className="fw-bold me-2">{label}:</span>
             {!editing[field] ? (
               <span>{userData[field] || 'Not set'}</span>
             ) : (
               <Form.Control
-                type={field.includes('contact') ? 'tel' : 'text'}
+                type={field === 'phoneNumber' ? 'tel' : field === 'email' ? 'email' : 'text'}
                 value={userData[field]}
                 onChange={(e) => handleChange(field, e.target.value)}
                 size="sm"
@@ -81,10 +127,10 @@ const Profile = () => {
                   width: field === 'address' ? '300px' : '200px',
                   marginLeft: '10px' 
                 }}
-                pattern={field.includes('contact') ? '[0-9]*' : undefined}
-                inputMode={field.includes('contact') ? 'numeric' : 'text'}
+                pattern={field === 'phoneNumber' ? '[0-9]*' : undefined}
+                inputMode={field === 'phoneNumber' ? 'numeric' : 'text'}
                 placeholder={
-                  field === 'contact' || field === 'alternateContact' 
+                  field === 'phoneNumber' 
                     ? 'Enter numbers only'
                     : field === 'address'
                     ? 'Enter your delivery address'
@@ -121,12 +167,14 @@ const Profile = () => {
     <Container className="py-5">
       <h2 className="mb-4">My Profile</h2>
       
+      {error && <Alert variant="danger">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+      
       {/* Profile Information */}
       <section className="mb-5">
-        {renderEditableField('Username', 'username')}
+        {renderEditableField('Name', 'name')}
         {renderEditableField('Email', 'email')}
-        {renderEditableField('Contact', 'contact')}
-        {renderEditableField('Alternate Contact', 'alternateContact', true)}
+        {renderEditableField('Phone Number', 'phoneNumber')}
         {renderEditableField('Delivery Address', 'address')}
       </section>
 

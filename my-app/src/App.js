@@ -17,7 +17,7 @@ function App() {
   const location = useLocation();
 
   // Define routes where the NavigationBar should not appear
-  const noNavbarRoutes = ['/login', '/register', '/', '/rider'];
+  const noNavbarRoutes = ['/login', '/register', '/', '/rider', '/admin'];
 
   return (
     <CartProvider>

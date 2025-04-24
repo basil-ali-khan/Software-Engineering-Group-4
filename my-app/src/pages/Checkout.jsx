@@ -138,7 +138,6 @@ const Checkout = () => {
         });
       } catch (error) {
         console.error('Error during checkout:', error);
-        alert('An error occurred during checkout. Please try again.');
       } finally {
         setIsSubmitting(false);
       }

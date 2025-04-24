@@ -107,7 +107,6 @@ const RiderProfile = () => {
 
       setAcceptedOrders((prevOrders) => [...prevOrders, data[0]]);
 
-      alert('Order accepted successfully!');
     } catch (err) {
       console.error('Unexpected error while accepting order:', err);
     }
@@ -138,8 +137,6 @@ const RiderProfile = () => {
             : order
         )
       );
-
-      alert('Order status updated successfully!');
     } catch (err) {
       console.error('Unexpected error while updating order status:', err);
     }

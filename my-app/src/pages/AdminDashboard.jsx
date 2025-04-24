@@ -61,7 +61,6 @@ const AdminDashboard = () => {
 
       if (error) {
         console.error('Error adding product:', error);
-        alert('Failed to add product: ' + error.message);
       } else {
         setProducts([...products, ...data]);
         setShowAddModal(false);
@@ -73,11 +72,9 @@ const AdminDashboard = () => {
           description: '',
           image: ''
         });
-        alert('Product added successfully!');
       }
     } catch (error) {
       console.error('Error in handleAddProduct:', error);
-      alert('Failed to add product. Please check the console for details.');
     }
   };
 
@@ -90,13 +87,11 @@ const AdminDashboard = () => {
       .eq('productID', selectedProduct.productID);
     if (error) {
       console.error('Error updating product:', error);
-      alert('Failed to update product.');
     } else {
       setProducts(products.map((product) =>
         product.productID === selectedProduct.productID ? { ...product, ...formData } : product
       ));
       setShowEditModal(false);
-      alert('Product updated successfully!');
     }
   };
 
@@ -106,10 +101,8 @@ const AdminDashboard = () => {
       const { error } = await supabase.from('product').delete().eq('productID', productID);
       if (error) {
         console.error('Error deleting product:', error);
-        alert('Failed to delete product.');
       } else {
         setProducts(products.filter((product) => product.productID !== productID));
-        alert('Product deleted successfully!');
       }
     }
   };
@@ -124,12 +117,10 @@ const AdminDashboard = () => {
       .eq('productID', productID);
     if (error) {
       console.error('Error reordering stock:', error);
-      alert('Failed to reorder stock.');
     } else {
       setProducts(products.map((p) =>
         p.productID === productID ? { ...p, stockQuantity: updatedStock } : p
       ));
-      alert('Reorder placed successfully!');
     }
   };
 

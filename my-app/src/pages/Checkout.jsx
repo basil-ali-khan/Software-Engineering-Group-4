@@ -105,6 +105,8 @@ const Checkout = () => {
           .select()
           .single();
         if (orderError) throw orderError;
+
+        // Create order products entries
         const orderProducts = cartItems.map(item => ({
           orderID: orderData.orderID,
           productID: item.productID,
@@ -114,35 +116,60 @@ const Checkout = () => {
           .from('orderproduct')
           .insert(orderProducts);
         if (productError) throw productError;
-        // Fixed OrderConfirmation navigation state
-        navigate('/order-confirmation', { 
-          state: { 
-            orderData: {
-              orderID: orderData.orderID,
-              orderDate: orderData.orderDate,
-              shipping: formData.shipping,
-              payment: formData.payment,
-              orderDetails: {
-                items: cartItems,
-                subtotal: subtotal,
-                tax: tax,
-                total: total
-              }
-            }
+
+        // Update stock quantities for each product
+        for (const item of cartItems) {
+          const { data: currentProduct, error: fetchError } = await supabase
+            .from('product')
+            .select('stockQuantity')
+            .eq('productID', item.productID)
+            .single();
+
+          if (fetchError) throw fetchError;
+
+          const newStockQuantity = currentProduct.stockQuantity - item.quantity;
+
+          const { error: updateError } = await supabase
+            .from('product')
+            .update({ stockQuantity: newStockQuantity })
+            .eq('productID', item.productID);
+
+          if (updateError) throw updateError;
+        }
+
+        // Store order data for confirmation page
+        const orderConfirmationData = {
+          orderID: orderData.orderID,
+          orderDate: orderData.orderDate,
+          shipping: formData.shipping,
+          payment: formData.payment,
+          orderDetails: {
+            items: [...cartItems], // Create a copy of cart items before clearing
+            subtotal: subtotal,
+            tax: tax,
+            total: total
           }
-        });
-        
-        // Clear cart after successful order
+        };
+
+        // Clear cart BEFORE navigation
         cartItems.forEach(item => {
           removeFromCart(item.productID);
         });
+
+        // Navigate to confirmation page after cart is cleared
+        navigate('/order-confirmation', { 
+          state: { 
+            orderData: orderConfirmationData
+          }
+        });
+        
       } catch (error) {
         console.error('Error during checkout:', error);
       } finally {
         setIsSubmitting(false);
       }
     }
-  };
+};
 
 
   if (isLoading) {
